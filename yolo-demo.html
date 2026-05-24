@@ -31,7 +31,7 @@
             try {
                 // 把 yolov8n.onnx 放在同目录，或换成你的 CDN 链接
                 // session = await ort.InferenceSession.create('./yolov8n.onnx');
-                session = await ort.InferenceSession.create('./yolov8n_ZQ.onnx');
+                session = await ort.InferenceSession.create('https://cdn.jsdelivr.net/gh/BenAffleck001/Hello-world@v1.0.0/yolov8n_ZQ.onnx');
                 status.textContent = '✅ 模型就绪，请上传图片';
             } catch(e) {
                 status.innerHTML = '❌ 模型加载失败: ' + e.message + '<br><small>请确保 yolov8n.onnx 文件存在</small>';

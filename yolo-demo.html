@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>YOLO 目标检测 Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.16.3/dist/ort.min.js"></script>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: sans-serif; text-align: center; padding: 2rem; }
+        #canvas { border: 2px solid #2563eb; border-radius: 8px; max-width: 100%; }
+        input { margin: 1rem; }
+        .loading { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <h2>🎯 浏览器实时目标检测</h2>
+    <p style="color:#94a3b8">上传图片，使用 ONNX 模型在本地推理</p>
+    <input type="file" id="upload" accept="image/*">
+    <div id="status" class="loading">等待上传...</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        let session;
+
+        // 加载 ONNX 模型（你需要先导出并上传模型文件）
+        async function loadModel() {
+            status.textContent = '⏳ 加载 ONNX 模型中...';
+            try {
+                // 把 yolov8n.onnx 放在同目录，或换成你的 CDN 链接
+                session = await ort.InferenceSession.create('./yolov8n.onnx');
+                status.textContent = '✅ 模型就绪，请上传图片';
+            } catch(e) {
+                status.innerHTML = '❌ 模型加载失败: ' + e.message + '<br><small>请确保 yolov8n.onnx 文件存在</small>';
+            }
+        }
+
+        upload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !session) return;
+
+            const img = new Image();
+            img.onload = async () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                status.textContent = '🔍 推理中...';
+                
+                // 预处理（根据你的模型输入调整）
+                const tensor = preprocess(ctx, img.width, img.height);
+                
+                // 推理
+                const feeds = { input: tensor };
+                const results = await session.run(feeds);
+                
+                // 后处理并画框（简化版，实际需要 NMS）
+                drawBoxes(results);
+                
+                status.textContent = '✅ 检测完成';
+            };
+            img.src = URL.createObjectURL(file);
+        });
+
+        function preprocess(ctx, w, h) {
+            // 这里需要根据你的 YOLO 版本调整预处理逻辑
+            // 简化示例：resize 到 640x640，归一化
+            const data = ctx.getImageData(0, 0, w, h).data;
+            // ... 预处理代码 ...
+            return new ort.Tensor('float32', new Float32Array(640*640*3), [1, 3, 640, 640]);
+        }
+
+        function drawBoxes(results) {
+            // 解析输出并画框
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            // 根据 results 画检测框...
+            ctx.strokeRect(50, 50, 200, 150); // 示例
+        }
+
+        loadModel();
+    </script>
+</body>
+</html>
